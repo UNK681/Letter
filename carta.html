@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Dancing+Script:wght@600;700&display=swap" />
+<title>Una carta para ti</title>
+<style>
+/* ============ 1. VARIABLES ============ */
+:root{
+  --paper:#fdf6e3; --ink:#3b2a20; --line:rgba(120,90,60,.16);
+  --env-back:#c99a66; --env-front-a:#f1d4aa; --env-front-b:#dbb083;
+  --flap-a:#e4be8e; --flap-b:#d1a26f;
+  --seal-a:#e8405a; --seal-b:#9b1b30;
+  --sobre-w:min(88vw,440px);
+}
+
+/* ============ 2. BASE Y FONDO ============ */
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  min-height:100dvh; overflow:hidden;
+  display:grid; place-items:center; gap:28px; align-content:center;
+  background:radial-gradient(ellipse at 50% 110%,#3a1f3d 0%,#1a1030 45%,#080a18 100%);
+  font-family:'Caveat',cursive; color:var(--ink);
+  padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+}
+body::before{ /* estrellas */
+  content:""; position:fixed; inset:0; pointer-events:none;
+  background-image:
+    radial-gradient(1.5px 1.5px at 10% 15%,#fff 50%,transparent 51%),
+    radial-gradient(1px 1px at 28% 35%,#fff 50%,transparent 51%),
+    radial-gradient(1.5px 1.5px at 47% 10%,#fff 50%,transparent 51%),
+    radial-gradient(1px 1px at 66% 28%,#fff 50%,transparent 51%),
+    radial-gradient(1.5px 1.5px at 85% 12%,#fff 50%,transparent 51%),
+    radial-gradient(1px 1px at 92% 40%,#fff 50%,transparent 51%),
+    radial-gradient(1px 1px at 15% 70%,#fff 50%,transparent 51%),
+    radial-gradient(1.5px 1.5px at 78% 75%,#fff 50%,transparent 51%);
+  animation:titilar 4s ease-in-out infinite alternate;
+}
+@keyframes titilar{from{opacity:.35}to{opacity:1}}
+
+.pista{
+  color:#ffe9b8; font-size:1.5rem; letter-spacing:.04em;
+  text-shadow:0 0 12px rgba(255,200,100,.6);
+  animation:latido 2.2s ease-in-out infinite; transition:opacity .5s;
+}
+.pista.oculta{opacity:0; animation:none}
+@keyframes latido{50%{transform:scale(1.06);opacity:.75}}
+
+/* ============ 3. SOBRE ============
+   Las partes (fondo, carta, frente, solapa) son hermanas y el contenedor
+   NO crea contexto de apilamiento, así podemos intercalar la carta entre
+   el fondo y el frente del sobre con z-index. */
+.sobre{position:relative; width:var(--sobre-w); aspect-ratio:3/2; cursor:pointer; outline:none}
+.sobre.abierto{cursor:default}
+.sobre:focus-visible .env-front{outline:3px solid #ffe9b8}
+
+.env-back,.env-front,.solapa,.sello{
+  transition:translate 1s ease, opacity .9s ease;
+}
+.env-back{
+  position:absolute; inset:0; background:var(--env-back);
+  border-radius:6px; box-shadow:0 28px 45px rgba(0,0,0,.55);
+}
+.env-front{
+  position:absolute; inset:0; z-index:3; border-radius:6px;
+  background:linear-gradient(160deg,var(--env-front-a),var(--env-front-b));
+  clip-path:polygon(0 0,50% 54%,100% 0,100% 100%,0 100%);
+}
+.solapa{
+  position:absolute; left:0; right:0; top:0; height:54%; z-index:4;
+  background:linear-gradient(var(--flap-a),var(--flap-b));
+  clip-path:polygon(0 0,100% 0,50% 100%);
+  transform-origin:top; transform:perspective(1200px) rotateX(0deg);
+  transition:transform .9s ease .6s, z-index 0s 1.1s, translate 1s ease, opacity .9s ease;
+}
+.sobre.abierto .solapa{
+  transform:perspective(1200px) rotateX(180deg); z-index:1;
+  transition:transform .9s ease, z-index 0s .45s, translate 1s ease, opacity .9s ease;
+}
+.sello{
+  position:absolute; z-index:5; left:50%; top:54%; width:56px; height:56px; margin:-28px 0 0 -28px;
+  border-radius:50%; display:grid; place-items:center; font-size:1.5rem; color:#ffd9de;
+  background:radial-gradient(circle at 35% 30%,var(--seal-a),var(--seal-b) 72%);
+  box-shadow:0 4px 10px rgba(0,0,0,.5), inset 0 -3px 6px rgba(0,0,0,.25);
+  animation:pulso 2s ease-in-out infinite;
+}
+@keyframes pulso{50%{transform:scale(1.1);box-shadow:0 0 22px rgba(232,64,90,.7)}}
+.sobre.abierto .sello{opacity:0; pointer-events:none; animation:none}
+
+/* ============ 4. CARTA ============ */
+.carta{
+  position:absolute; z-index:2; left:6%; top:6%; width:88%; height:88%;
+  background:var(--paper); border-radius:4px;
+  box-shadow:0 2px 10px rgba(0,0,0,.25);
+  transition:translate .9s cubic-bezier(.4,0,.2,1) .7s;
+}
+.sobre:not(.abierto) .carta{transition-delay:0s}
+.sobre.abierto .carta{translate:0 -62%}
+
+/* Modo lectura: la carta pasa a pantalla y el sobre se desvanece hacia abajo */
+.sobre.lectura .carta{
+  position:fixed; inset:0; margin:auto; z-index:10; translate:none; transition:none;
+  width:min(92vw,560px); height:min(82dvh,660px);
+  box-shadow:0 30px 80px rgba(0,0,0,.6), 0 0 60px rgba(255,200,100,.18);
+}
+.sobre.lectura .env-back,.sobre.lectura .env-front,
+.sobre.lectura .solapa,.sobre.lectura .sello{translate:0 45vh; opacity:0}
+
+.carta__cuerpo{
+  position:absolute; inset:0; overflow-y:auto; opacity:0; transition:opacity .7s;
+  padding:clamp(22px,5vw,42px) clamp(20px,5vw,40px);
+  font-size:clamp(1.3rem,4.2vw,1.55rem); line-height:34px;
+  background:repeating-linear-gradient(transparent 0 33px,var(--line) 33px 34px) local;
+  border-radius:4px; scrollbar-width:thin; scrollbar-color:#d1b48c transparent;
+}
+.carta.lista .carta__cuerpo{opacity:1}
+.carta__cuerpo p{margin-bottom:34px; min-height:34px}
+.carta__cuerpo .para{font:700 clamp(1.7rem,6vw,2.2rem)/34px 'Dancing Script',cursive; color:#7a1f2e}
+.carta__cuerpo .firma{font:700 clamp(1.8rem,6vw,2.3rem)/34px 'Dancing Script',cursive; color:#7a1f2e; text-align:right}
+.carta__cuerpo .despedida{text-align:right; margin-bottom:0}
+.escribiendo::after{content:"|"; margin-left:2px; animation:parpadeo .7s steps(2) infinite}
+@keyframes parpadeo{50%{opacity:0}}
+
+.cerrar{
+  display:block; margin:6px auto 12px; font:700 1.3rem 'Caveat',cursive;
+  color:#fff; background:var(--seal-b); border:none; border-radius:999px;
+  padding:8px 22px; cursor:pointer; opacity:0; animation:aparecer .8s ease forwards;
+}
+.cerrar:active{background:var(--seal-a)}
+@keyframes aparecer{to{opacity:1}}
+
+/* ============ 5. PÉTALOS ============ */
+.petalo{
+  position:fixed; top:-6vh; z-index:20; pointer-events:none; font-size:var(--s);
+  animation:caer var(--dur) linear forwards;
+}
+@keyframes caer{to{transform:translate(var(--dx),112vh) rotate(420deg)}}
+
+/* ============ 6. BOTÓN DE MÚSICA ============ */
+.musica-btn{
+  position:fixed; z-index:30; top:calc(14px + env(safe-area-inset-top)); right:14px;
+  width:46px; height:46px; border-radius:50%; border:1px solid rgba(255,233,184,.35);
+  background:rgba(20,12,35,.55); color:#ffe9b8; font-size:1.3rem; cursor:pointer;
+  display:grid; place-items:center; opacity:0; pointer-events:none; transition:opacity .8s;
+  backdrop-filter:blur(4px);
+}
+.musica-btn.visible{opacity:1; pointer-events:auto}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01s !important; transition-duration:.01s !important; transition-delay:0s !important}
+}
+</style>
+</head>
+<body>
+
+<p class="pista" id="pista">Toca el sobre para abrirlo</p>
+
+<button class="musica-btn" id="btnMusica" aria-label="Pausar o reanudar la música">🔊</button>
+
+<div class="sobre" id="sobre" role="button" tabindex="0" aria-label="Abrir la carta">
+  <div class="env-back"></div>
+  <div class="carta" id="carta">
+    <div class="carta__cuerpo" id="cuerpo"></div>
+  </div>
+  <div class="env-front"></div>
+  <div class="solapa"></div>
+  <div class="sello" aria-hidden="true">♥</div>
+</div>
+
+<script>
+/* ============ CONTENIDO (edita solo esta parte) ============ */
+const CARTA = {
+  para: "Para ti:",
+  parrafos: [
+    `Tengo que soltarte esto sin tantas vueltas, me atraes de una forma que ni yo mismo entiendo. No es algo pasajero ni un capricho del momento, es eso que se siente cuando alguien te mueve todo por dentro con solo hablarte. Me encanta tu forma de ser, tu manera de contar las cosas, tus días buenos y hasta esos días raros en los que andas seria. Cada vez que me escribes se me acelera todo y me dan ganas de contarte mil cosas, pero también me da miedo que al decirte esto todo entre nosotros cambie.`,
+    `No te voy a negar lo que siento, porque sería mentirme a mí mismo cada vez que pienso en ti. Pero luego me quedo callado, con la cabeza llena, y me pregunto si en realidad me estás eligiendo a mí, o si solo seremos dos personas que se cruzaron por casualidad en este mundo tan grande. Agradezco tanto haberte encontrado, y todo por un juego, uno que para otros es solo pasar el rato, pero para mí fue la manera en la que la vida me puso enfrente a la persona más linda que he conocido. Lo más curioso es que nos parecemos demasiado, los dos nos alejamos un tiempo, volvemos de la nada y todo sigue como si nada hubiera pasado. Como ya te dije antes, pienso quedarme todo lo que pueda, pero también debo ser honesto contigo, algún día me voy a agotar de aguardar, no digo que sea hoy, mañana o en un mes, pero llegará un momento en el que ya no esté aquí.`,
+    `Y no es que no quiera quedarme, de verdad quiero, porque eres de las pocas personas con las que puedo ser yo sin fingir nada. A tu lado todo se siente distinto, hasta una charla toda tonta se me hace bonita. Pero también me lastima que seamos así, de buscarnos en ratos y en otros como si no existiéramos. A veces me pregunto si para ti también soy alguien importante o si solo soy ese chico del juego con el que platicas cuando no hay nadie más.`,
+    `Te juro que no te escribo esto para reclamarte nada, ni para que te sientas culpable. Lo hago porque me importas demasiado como para quedarme callado y actuar como si no pasara nada. Me encantas con tus días buenos y con esos días en los que te vas sin avisar y no sé nada de ti. Me fascina tu voz, tu risa, hasta tu forma de ignorarme se me hace linda, y eso ya está mal.`,
+    `Pero yo también soy así, yo también me alejo cuando siento mucho, y por eso entiendo que a veces necesites tu espacio. No te juzgo, porque yo hago lo mismo. Solo que hay noches en las que me quedo pensando y digo, ¿y si un día de estos ya no regresas? ¿Y si te cansas de volver y yo me quedo aquí esperando un mensaje que nunca va a llegar? Eso me asusta, me asusta encariñarme tanto con alguien que no sé si se va a quedar.`,
+    `Por eso te digo que voy a estar aquí todo lo que pueda, porque de verdad quiero que esto sea algo más que solo conocernos. Pero también quiero que sepas que mi corazón también se agota, se agota de ilusionarse con cada "hola" y de romperse con cada silencio. Si algún día ya no estoy, no es porque dejé de sentirlo, es porque me cansé de querer a alguien que nunca supo si quería quedarse.`,
+    `Y que quede claro, yo no me quiero ir. De verdad no me quiero ir de tu vida, no quiero ser otro recuerdo más, ni otra persona que pasó y se fue. Yo quiero quedarme, quiero seguir conociéndote, quiero seguir hablando contigo hasta tarde, quiero seguir siendo esa persona a la que le cuentas tus cosas. Si te digo que a veces me agoto, no es porque quiera irme, es porque tengo miedo de perderte y no saber cómo evitarlo. Yo quiero quedarme aquí, contigo, todo el tiempo que tú me dejes quedarme.`,
+    `Y aún así, aunque me duela, agradezco haberte encontrado. Por un juego conocí a una de las personas más especiales que he conocido, y eso nadie me lo quita. Si te quedas, aquí voy a estar. Y si te vas, igual voy a estar agradecido por todo lo que me hiciste sentir.`
+  ],
+  despedida: "",             // déjala vacía si no quieres línea de despedida
+  firma: "ATTE: Gabo",
+  velocidad: 32              // milisegundos por letra (más alto = más lento)
+};
+
+/* ============ UTILIDADES ============ */
+const $ = (id) => document.getElementById(id);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const reducir = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const sobre = $("sobre"), carta = $("carta"), cuerpo = $("cuerpo"), pista = $("pista");
+let estado = "cerrada";      // cerrada | abriendo | lectura | cerrando
+let saltar = false;          // true = mostrar el texto completo de golpe
+
+/* Zona de la carta que se ve mientras está dentro del sobre (el resto queda
+   tapado por el frente del sobre). Se usa como máscara durante la animación
+   para que, al pasar a pantalla, no aparezca de golpe el rectángulo completo. */
+const VISIBLE_EN_SOBRE = "polygon(0 0,100% 0,100% 62.5%,65.4% 100%,34.6% 100%,0 62.5%)";
+const CARTA_COMPLETA   = "polygon(0 0,100% 0,100% 100%,100% 100%,0 100%,0 100%)";
+
+/* FLIP: anima un elemento desde su posición/tamaño anterior hasta el nuevo,
+   sin importar cómo lo cambie la función `cambio` (aquí: pasar a fixed). */
+function flip(el, cambio, duracion, mascaraDesde, mascaraHasta) {
+  const a = el.getBoundingClientRect();
+  cambio();
+  const b = el.getBoundingClientRect();
+  const base = { transformOrigin: "top left" };
+  const desde = { ...base, clipPath: mascaraDesde,
+    transform: `translate(${a.left - b.left}px,${a.top - b.top}px) scale(${a.width / b.width},${a.height / b.height})` };
+  const hasta = { ...base, clipPath: mascaraHasta, transform: "none" };
+  return el.animate([desde, hasta],
+    { duration: reducir ? 1 : duracion, easing: "cubic-bezier(.22,1,.36,1)" }).finished;
+}
+
+/* Lluvia de pétalos y corazones */
+function lluvia(n) {
+  const simbolos = ["🌼", "💛", "✨", "🌹", "💖"];
+  for (let i = 0; i < n; i++) {
+    const p = document.createElement("span");
+    p.className = "petalo";
+    p.textContent = simbolos[Math.floor(Math.random() * simbolos.length)];
+    p.style.left = Math.random() * 100 + "vw";
+    p.style.setProperty("--s", (0.9 + Math.random() * 1.2).toFixed(2) + "rem");
+    p.style.setProperty("--dur", (5 + Math.random() * 5).toFixed(1) + "s");
+    p.style.setProperty("--dx", (Math.random() * 140 - 70).toFixed(0) + "px");
+    p.style.animationDelay = (Math.random() * 1.5).toFixed(2) + "s";
+    p.addEventListener("animationend", () => p.remove());
+    document.body.append(p);
+  }
+}
+
+/* ============ ESCRITURA A MÁQUINA ============ */
+/* La carta baja sola mientras se escribe, pero si la persona sube con el dedo
+   o el mouse para releer, se deja de seguir el texto. Cuando vuelve al final,
+   se retoma el seguimiento automático. */
+let siguiendo = true;
+cuerpo.addEventListener("scroll", () => {
+  siguiendo = cuerpo.scrollHeight - cuerpo.scrollTop - cuerpo.clientHeight < 60;
+});
+function seguir() { if (siguiendo) cuerpo.scrollTop = cuerpo.scrollHeight; }
+
+async function escribir() {
+  cuerpo.innerHTML = "";
+  siguiendo = true;
+  saltar = reducir;
+  const bloques = [
+    { clase: "para", texto: CARTA.para },
+    ...CARTA.parrafos.map((t) => ({ clase: "", texto: t })),
+    { clase: "despedida", texto: CARTA.despedida },
+    { clase: "firma", texto: CARTA.firma }
+  ].filter((b) => b.texto);
+  for (const { clase, texto } of bloques) {
+    const p = document.createElement("p");
+    p.className = clase;
+    cuerpo.append(p);
+    p.classList.add("escribiendo");
+    for (const letra of texto) {
+      if (estado !== "lectura") return;           // se cerró la carta a la mitad
+      if (saltar) { p.textContent = texto; break; }
+      p.textContent += letra;
+      seguir();
+      await sleep(/[.,;:!?]/.test(letra) ? CARTA.velocidad * 7 : CARTA.velocidad);
+    }
+    p.classList.remove("escribiendo");
+    seguir();
+    await sleep(saltar ? 0 : 380);
+  }
+  const boton = document.createElement("button");
+  boton.className = "cerrar";
+  boton.textContent = "Volver a guardarla ♥";
+  boton.addEventListener("click", cerrar);
+  cuerpo.append(boton);
+  seguir();
+  lluvia(18);
+}
+
+/* ============ MÚSICA (compuesta con código) ============
+   Una melodía suave y original, generada en vivo con Web Audio: un colchón de
+   acordes (La menor, Fa, Do, Sol), un bajo grave y un arpegio tipo piano con
+   eco. No usa archivos de audio, así que no pesa nada y siempre funciona.
+   Empieza al tocar el sobre (los celulares exigen un toque para dar sonido). */
+const VOLUMEN = 0.8;   // 0 a 1
+
+function crearMusica(ctx, volumen) {
+  const CORCHEA = 60 / 66 / 2;                         // 66 pulsos por minuto
+  const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);  // nota MIDI -> frecuencia
+  const ACORDES = [                                     // Am - F - C - G
+    { bajo: 45, notas: [57, 60, 64] },
+    { bajo: 41, notas: [53, 57, 60] },
+    { bajo: 48, notas: [60, 64, 67] },
+    { bajo: 43, notas: [55, 59, 62] }
+  ];
+  const PATRONES = [[0, 1, 2, 3, 2, 1, 2, 4], [0, 2, 1, 3, 5, 3, 2, 1]];
+
+  /* Salida: master -> compresor -> bocinas, y un eco (reverb) en paralelo */
+  const master = ctx.createGain(); master.gain.value = 0;
+  const comp = ctx.createDynamicsCompressor();
+  master.connect(comp); comp.connect(ctx.destination);
+  const seco = ctx.createGain(); seco.gain.value = 0.8; seco.connect(master);
+  const largo = Math.floor(ctx.sampleRate * 3.6);
+  const impulso = ctx.createBuffer(2, largo, ctx.sampleRate);
+  for (let c = 0; c < 2; c++) {
+    const d = impulso.getChannelData(c);
+    for (let i = 0; i < largo; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / largo, 2.6);
+  }
+  const reverb = ctx.createConvolver(); reverb.buffer = impulso;
+  const suave = ctx.createBiquadFilter(); suave.type = "lowpass"; suave.frequency.value = 3200;
+  const envio = ctx.createGain(); envio.gain.value = 0.5;
+  envio.connect(reverb); reverb.connect(suave); suave.connect(master);
+
+  /* Una nota tipo piano: ataque rápido y caída suave */
+  function nota(m, t, vel, dur) {
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 2600;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vel * 0.34, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    [["sine", 1, 1], ["triangle", 2, 0.22], ["sine", 3, 0.06]].forEach(([tipo, mult, amp]) => {
+      const o = ctx.createOscillator(); o.type = tipo; o.frequency.value = hz(m) * mult;
+      const a = ctx.createGain(); a.gain.value = amp;
+      o.connect(a); a.connect(lp); o.start(t); o.stop(t + dur + 0.1);
+    });
+    lp.connect(g); g.connect(seco); g.connect(envio);
+  }
+
+  /* Colchón de acordes que entra y sale despacio */
+  function colchon(acorde, t, dur) {
+    acorde.notas.forEach((m) => [-5, 5].forEach((det) => {
+      const o = ctx.createOscillator(); o.type = "triangle"; o.frequency.value = hz(m); o.detune.value = det;
+      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 900;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(0.045, t + 2.2);
+      g.gain.setValueAtTime(0.045, t + dur - 1.5);
+      g.gain.linearRampToValueAtTime(0.0001, t + dur + 1.5);
+      o.connect(lp); lp.connect(g); g.connect(seco); g.connect(envio);
+      o.start(t); o.stop(t + dur + 1.6);
+    }));
+  }
+
+  let paso = 0, inicio = null;
+  return {
+    /* Entra poco a poco en ~4 segundos */
+    entrar() { master.gain.linearRampToValueAtTime(volumen, ctx.currentTime + 4); },
+    /* Programa todas las notas hasta el instante `hasta` (en segundos del reloj de audio) */
+    programarHasta(hasta) {
+      if (inicio === null) inicio = ctx.currentTime + 0.2;
+      while (inicio + paso * CORCHEA < hasta) {
+        const t = inicio + paso * CORCHEA;
+        const ac = ACORDES[Math.floor(paso / 16) % 4];
+        const compas = Math.floor(paso / 8) % 2, pos = paso % 8;
+        const tonos = [...ac.notas, ...ac.notas.map((m) => m + 12)];
+        if (paso % 16 === 0) { colchon(ac, t, 16 * CORCHEA); nota(ac.bajo, t, 0.8, 7); }
+        if (Math.random() < 0.85) nota(tonos[PATRONES[compas][pos]], t + Math.random() * 0.02, 0.5 + Math.random() * 0.4, 3.2);
+        if (compas === 1 && pos === 0) {                 // nota larga de melodía
+          const alta = [tonos[5], tonos[4], ac.notas[1] + 19];
+          nota(alta[Math.floor(Math.random() * alta.length)], t, 0.65, 5.5);
+        }
+        paso++;
+      }
+    }
+  };
+}
+
+let audioCtx = null, musica = null;
+const btnMusica = $("btnMusica");
+
+function iniciarMusica() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    musica = crearMusica(audioCtx, VOLUMEN);
+    setInterval(() => musica.programarHasta(audioCtx.currentTime + 1.5), 200);
+  }
+  audioCtx.resume();
+  musica.entrar();
+  btnMusica.classList.add("visible");
+}
+btnMusica.addEventListener("click", (e) => {
+  e.stopPropagation();
+  if (audioCtx.state === "running") { audioCtx.suspend(); btnMusica.textContent = "🔇"; }
+  else { audioCtx.resume(); btnMusica.textContent = "🔊"; }
+});
+
+/* ============ ABRIR / CERRAR ============ */
+async function abrir() {
+  if (estado !== "cerrada") return;
+  estado = "abriendo";
+  iniciarMusica();
+  pista.classList.add("oculta");
+  sobre.classList.add("abierto");
+  sobre.removeAttribute("role");
+  await sleep(reducir ? 100 : 2000);               // solapa se abre y la carta sube
+  await flip(carta, () => sobre.classList.add("lectura"), 1100, VISIBLE_EN_SOBRE, CARTA_COMPLETA);
+  carta.classList.add("lista");
+  estado = "lectura";
+  lluvia(10);
+  escribir();
+}
+
+async function cerrar() {
+  if (estado !== "lectura") return;
+  estado = "cerrando";
+  carta.classList.remove("lista");
+  await sleep(500);
+  await flip(carta, () => sobre.classList.remove("lectura"), 900, CARTA_COMPLETA, VISIBLE_EN_SOBRE);
+  sobre.classList.remove("abierto");
+  sobre.setAttribute("role", "button");
+  await sleep(1600);
+  cuerpo.innerHTML = "";
+  pista.classList.remove("oculta");
+  estado = "cerrada";
+}
+
+/* ============ EVENTOS ============ */
+sobre.addEventListener("click", abrir);
+sobre.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(); }
+});
+carta.addEventListener("click", () => { if (estado === "lectura") saltar = true; });  // tocar la carta = leer todo
+</script>
+</body>
+</html>
